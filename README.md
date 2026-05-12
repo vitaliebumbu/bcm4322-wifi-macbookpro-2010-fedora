@@ -1,135 +1,153 @@
-# WiFi Fix on MacBook Pro 2010 (BCM4322) on Fedora Linux
+# WiFi Fix on MacBook Pro 2010 on Fedora Linux
 
-> **Fix for missing WiFi on MacBook Pro 2010 (Broadcom BCM4322, 802.11a/b/g/n) on Fedora Silverblue, Fedora Workstation, and other modern Linux distributions.**
+**No WiFi showing up after installing Fedora on your MacBook Pro 2010? This guide will fix it in a few minutes.**
 
-This fix was tested on an **Apple MacBook Pro 2010 (MacBookPro7,1 — 13", Mid-2010)** running **Fedora Silverblue 44**, but applies to any machine with a BCM4322 chip.
-
----
-
-## Who is this for?
-
-If you:
-- Have a **Broadcom BCM4322** WiFi card (check with `lspci | grep -i net`)
-- See **no WiFi option** in your network settings
-- Are running **Fedora Silverblue**, Fedora Workstation, or a similar distribution
-- See the `b43` driver loaded but no WiFi interface (`ip link show` shows no `wlan*`)
-
-...this is the fix for you.
+Tested on: MacBook Pro 13" Mid-2010 running Fedora Silverblue 44.  
+Also works on: Fedora Workstation and most other Fedora-based systems.
 
 ---
 
-## The Problem
+## Is this guide for you?
 
-The `b43` kernel driver for Broadcom wireless chips is included in Fedora by default, but it requires **proprietary firmware** that is not shipped with the OS. Without the firmware, the driver loads silently and no WiFi interface appears.
+You are in the right place if:
 
-```bash
-# Driver is loaded:
-lsmod | grep b43   # shows b43, bcma, mac80211...
+- You installed **Fedora Linux** on a **MacBook Pro 2010** (or similar Mac)
+- There is **no WiFi option** anywhere — not in the top bar, not in Settings
+- You are connected to internet only via an ethernet cable (or not at all)
 
-# But no WiFi interface:
-ip link show       # only lo and ethernet, no wlan0
-nmcli device       # no wifi device listed
+The cause is simple: Fedora does not include the WiFi driver files for this MacBook out of the box. This guide installs them.
 
-# And no firmware files:
-ls /lib/firmware/b43/   # No such file or directory
+---
+
+## Before you start
+
+You will need:
+- A working internet connection (plug in an ethernet cable if you have one)
+- Your computer's login password
+
+---
+
+## Which version of Fedora do you have?
+
+Not sure? Open the **Terminal** app and paste this:
+
+```
+cat /etc/os-release | grep VARIANT
 ```
 
-The `b43-firmware` package no longer exists in RPM Fusion. The firmware must be extracted from a Broadcom proprietary driver using `b43-fwcutter`.
+- If it says `Silverblue` → follow **Option A** below
+- If it says `Workstation` → follow **Option B** below
 
 ---
 
-## Quick Fix
+## Option A — Fedora Silverblue
 
-### Fedora Silverblue (immutable / OSTree)
+Open the **Terminal** app and run the following commands **one at a time**.  
+Copy each line, paste it into the terminal, and press **Enter**. Wait for it to finish before moving to the next.
 
-```bash
-# 1. Enable RPM Fusion (no sudo needed on Silverblue — uses D-Bus daemon)
-rpm-ostree install \
-  https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+**Step 1 — Enable extra software sources**
 
-# 2. Download and run the fix script (requires pkexec GUI password prompt)
-curl -fsSL https://raw.githubusercontent.com/vitaliebumbu/bcm4322-wifi-fedora-silverblue/main/scripts/fix-wifi-silverblue.sh -o /tmp/fix-wifi.sh
+```
+rpm-ostree install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+```
+
+This may take a minute. When it says `Changes queued for next boot`, continue.
+
+**Step 2 — Download and run the fix**
+
+```
+curl -fsSL https://raw.githubusercontent.com/vitaliebumbu/bcm4322-wifi-macbookpro-2010-fedora/main/scripts/fix-wifi-silverblue.sh -o /tmp/fix-wifi.sh
+```
+
+```
 pkexec bash /tmp/fix-wifi.sh
 ```
 
-> **Note:** A GUI password dialog will appear. Enter your user password to authorize.
->
-> **Important:** The fix uses `rpm-ostree usroverlay` which makes `/usr` temporarily writable.  
-> **This resets on every reboot.** Run the script again after each reboot, or see [Permanent Fix](#permanent-fix) below.
+> A **password dialog will pop up on your screen** — enter your login password and click OK.
+
+**Step 3 — Check WiFi is working**
+
+After the script finishes, look at the top-right corner of your screen. The WiFi icon should now appear. Click it and connect to your network!
+
+> ⚠️ **Important:** This fix is temporary. If you restart your computer, you will need to run Step 2 again. For a permanent fix, see the section below.
 
 ---
 
-### Fedora Workstation / Standard Fedora (mutable)
+## Option B — Fedora Workstation
 
-```bash
-# 1. Enable RPM Fusion
-sudo dnf install \
-  https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+Open the **Terminal** app and run the following commands **one at a time**.
 
-# 2. Install b43-fwcutter and download firmware
+**Step 1 — Enable extra software sources**
+
+```
+sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+```
+
+Type your password when asked and press Enter.
+
+**Step 2 — Install the WiFi tool**
+
+```
 sudo dnf install b43-fwcutter
-curl -fsSL https://raw.githubusercontent.com/vitaliebumbu/bcm4322-wifi-fedora-silverblue/main/scripts/fix-wifi-workstation.sh | sudo bash
 ```
 
----
+**Step 3 — Run the fix**
 
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| [`fix-wifi-silverblue.sh`](scripts/fix-wifi-silverblue.sh) | One-shot fix for Fedora Silverblue (uses usroverlay) |
-| [`fix-wifi-workstation.sh`](scripts/fix-wifi-workstation.sh) | Fix for standard Fedora / mutable systems |
-
----
-
-## Permanent Fix
-
-On Silverblue, the usroverlay approach is lost on reboot. For a permanent solution, a systemd service can re-apply the firmware on every boot:
-
-```bash
-pkexec bash /path/to/scripts/install-permanent.sh
+```
+curl -fsSL https://raw.githubusercontent.com/vitaliebumbu/bcm4322-wifi-macbookpro-2010-fedora/main/scripts/fix-wifi-workstation.sh | sudo bash
 ```
 
-See [`scripts/install-permanent.sh`](scripts/install-permanent.sh) for details.
+**Step 4 — Check WiFi is working**
+
+Look at the top-right corner of your screen. The WiFi icon should appear. Click it and connect!
+
+> This fix is **permanent** — WiFi will keep working after restarts.
 
 ---
 
-## Verification
+## Make the fix permanent on Silverblue
 
-After running the fix:
+If you are on Fedora Silverblue and you do not want to repeat Step 2 after every restart, run this once:
 
-```bash
-ip link show          # wlan0 should appear
-nmcli device status   # wifi device should show "disconnected" (ready)
-nmcli device wifi list  # scan and list nearby networks
+```
+curl -fsSL https://raw.githubusercontent.com/vitaliebumbu/bcm4322-wifi-macbookpro-2010-fedora/main/scripts/install-permanent.sh -o /tmp/install-permanent.sh
+pkexec bash /tmp/install-permanent.sh
 ```
 
----
-
-## Hardware Tested
-
-| Component | Details |
-|-----------|---------|
-| Machine | Apple MacBook Pro 7,1 |
-| WiFi Chip | Broadcom BCM4322 (PCI ID: `14e4:432b`) |
-| OS | Fedora Silverblue 44 |
-| Kernel | 7.0.4-200.fc44.x86_64 |
-| Driver | `b43` (in-kernel) |
-| Firmware | Extracted from `broadcom-wl-6.30.163.46` via `b43-fwcutter` |
+A password dialog will appear — enter your password. After this, WiFi will load automatically on every boot.
 
 ---
 
-## Related Issues
+## Something went wrong?
 
-- `b43-firmware` package removed from RPM Fusion → must extract manually
-- `rpm-ostree usroverlay` required on Silverblue to write to `/usr/lib/firmware`
-- RPM Fusion repos can be installed without `sudo` on Silverblue via D-Bus daemon
-- `pkexec` works for root actions on Silverblue via GNOME polkit agent
+**WiFi icon still not showing after the script finished:**
+- Open Terminal and run: `nmcli device wifi list`
+- If you see a list of networks, WiFi is working — just click the icon in the top bar
+
+**"Command not found" error:**
+- Make sure you copied the full command including all parts
+- Try closing and reopening the Terminal, then run the command again
+
+**Script failed with a download error:**
+- Check that your ethernet cable is plugged in and you have internet access
+- Try running the same command again
+
+**Still stuck?** Open an [issue on this page](../../issues) and describe what happened. Include what the terminal printed.
+
+---
+
+## About this fix
+
+The MacBook Pro 2010 uses a **Broadcom BCM4322** WiFi chip. Fedora includes the driver for this chip (`b43`) but not the firmware files it needs to operate — because those files have a proprietary license. This fix downloads and installs those firmware files so the driver can work.
+
+| | |
+|---|---|
+| Machine | MacBook Pro 13" Mid-2010 (MacBookPro7,1) |
+| WiFi chip | Broadcom BCM4322 |
+| Fedora version tested | Fedora Silverblue 44 |
 
 ---
 
 ## License
 
-Scripts are released under the MIT License. See [LICENSE](LICENSE).
+MIT — free to use, share, and modify. See [LICENSE](LICENSE).
