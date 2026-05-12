@@ -1,8 +1,8 @@
-# BCM4322 WiFi Fix — Fedora Silverblue / Fedora Linux
+# WiFi Fix on MacBook Pro 2010 (BCM4322) on Fedora Linux
 
-> **Fix for missing WiFi on Broadcom BCM4322 (802.11a/b/g/n) on Fedora Silverblue, Fedora Workstation, and other modern Linux distributions.**
+> **Fix for missing WiFi on MacBook Pro 2010 (Broadcom BCM4322, 802.11a/b/g/n) on Fedora Silverblue, Fedora Workstation, and other modern Linux distributions.**
 
-This fix was tested on an **Apple MacBook Pro (MacBookPro7,1)** running **Fedora Silverblue 44**, but applies to any machine with a BCM4322 chip.
+This fix was tested on an **Apple MacBook Pro 2010 (MacBookPro7,1 — 13", Mid-2010)** running **Fedora Silverblue 44**, but applies to any machine with a BCM4322 chip.
 
 ---
 
